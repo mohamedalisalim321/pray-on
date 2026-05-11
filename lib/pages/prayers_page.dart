@@ -12,7 +12,7 @@ import '../components/prayer_tile.dart';
 import '../services/location_service.dart';
 import '../services/prayer_service.dart';
 import '../themes/theme_extensions.dart';
-import '../services/noti_service.dart';
+import '../services/noti_service.dart';import '../services/adhan_service.dart';
 
 class PrayersPage extends StatefulWidget {
   const PrayersPage({super.key});
@@ -214,8 +214,8 @@ class _PrayersPageState extends State<PrayersPage>
         final prayersList = prayerService.formatPrayers(times);
 
         await NotiService.instance.schedulePrayerNotifications(prayersList);
-
-        _lastNotificationLocationKey = locationKey;
+        await AdhanService.instance.playPrayerAdhan();
+        _lastNotificationLocationKey = locationKey; 
 
         if (mounted) {
           // Show a brief confirmation so the user knows notifications were set.

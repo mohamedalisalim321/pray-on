@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:provider/provider.dart';
 
@@ -38,7 +39,6 @@ class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
   static const double _kAlignOffThreshold = 8.0;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
-
   @override
   void initState() {
     super.initState();
@@ -47,7 +47,6 @@ class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final locationService = context.read<LocationService>();
 
-      // 🔥 CRITICAL FIX: ensure location exists
       await locationService.getCurrentLocation();
 
       if (!mounted) return;
@@ -59,18 +58,14 @@ class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        // BUG Q4 FIX: only restart the compass when a valid Qibla direction is
-        // already available; otherwise the app was backgrounded mid-load and
-        // _initialize will call _startCompass itself once it completes.
+
         if (_qiblaDirection != null && !_error) {
           _startCompass();
         }
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
-        // BUG Q2 FIX: cancel instead of pause. pause() buffers every compass
-        // event that arrives while suspended and replays them in a burst on
-        // resume, flooding the UI with stale readings and defeating the throttle.
+
         _cancelCompass();
         break;
       default:
@@ -95,9 +90,7 @@ class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
     });
 
     try {
-      // BUG Q3 FIX: forceRefresh was always true, bypassing both the
-      // QiblaService TTL cache and the LocationService coordinate cache on every
-      // retry. Let the service's own TTL decide freshness instead.
+
       final locationService = context.read<LocationService>();
       final location = locationService.currentLocation;
 
@@ -130,7 +123,6 @@ class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
   }
 
   // ── Compass management ────────────────────────────────────────────────────
-
   void _startCompass() {
     _compassSubscription?.cancel();
 
@@ -150,9 +142,6 @@ class _QiblaPageState extends State<QiblaPage> with WidgetsBindingObserver {
     );
   }
 
-  // BUG Q2 FIX: replaced _pauseCompass (which called .pause() and buffered
-  // events) with _cancelCompass (which tears down the subscription cleanly).
-  // _startCompass on resume creates a fresh subscription with no backlog.
   void _cancelCompass() => _compassSubscription?.cancel();
 
   void _onCompassEvent(CompassEvent event) {

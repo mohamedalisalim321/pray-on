@@ -1,7 +1,7 @@
 import 'dart:math';
+
 import 'package:location/location.dart' show LocationData;
 
-/// Same QiblaResult (unchanged)
 class QiblaResult {
   final double bearing;
   final double distanceKm;
@@ -33,10 +33,6 @@ class QiblaService {
   QiblaService({
     this.cacheTtl = const Duration(minutes: 5),
   });
-
-  // ─────────────────────────────────────────────
-  // MAIN API
-  // ─────────────────────────────────────────────
 
   QiblaResult getQiblaDirection({
     required LocationData location,

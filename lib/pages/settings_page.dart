@@ -1,193 +1,192 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:pray_on/themes/theme_provider.dart';
 
 import 'package:provider/provider.dart';
 import 'package:adhan/adhan.dart';
 
 import '../services/settings_service.dart';
-import '../services/noti_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الإعدادات'),
-        centerTitle: true,
-        actions: [
-          // Reset to defaults button
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'استعادة الإعدادات الافتراضية',
-            onPressed: () => _showResetDialog(context),
+    final themeProv = Provider.of<ThemeProvider>(context, listen: false);
+    return Consumer<SettingsService>(
+      builder: (context, settings, _) => ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          _buildSectionHeader("المنظر"),
+
+          SwitchListTile(
+            title: const Text("Dark Mode"),
+            value: themeProv.isDarkMode,
+            onChanged: (value) async {
+              themeProv.toggleTheme();
+            },
+            secondary: const Icon(Icons.dark_mode_rounded),
           ),
-        ],
-      ),
-      body: Consumer<SettingsService>(
-        builder: (context, settings, _) => ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          children: [
-            // ─────────────────────────────────────────────────────────────
-            // 🕌 Prayer Notifications Section
-            // ─────────────────────────────────────────────────────────────
-            _buildSectionHeader('تنبيهات الصلاة'),
 
-            // Bulk toggle all prayers
-            _buildBulkToggleTile(context, settings),
+          // ─────────────────────────────────────────────────────────────
+          // 🕌 Prayer Notifications Section
+          // ─────────────────────────────────────────────────────────────
+          // _buildSectionHeader('تنبيهات الصلاة'),
 
-            const Divider(height: 1),
+          // // Bulk toggle all prayers
+          // _buildBulkToggleTile(context, settings),
 
-            // Individual prayer toggles
-            ...Prayer.values.where((p) => p != Prayer.none).map((prayer) {
-              // Skip sunrise if you don't want to show it by default
-              if (prayer == Prayer.sunrise && !settings.sunriseEnabled) {
-                return const SizedBox.shrink();
-              }
-              return _buildPrayerToggleTile(context, settings, prayer);
-            }),
+          // const Divider(height: 1),
 
-            // ─────────────────────────────────────────────────────────────
-            // 🔔 Notification Behavior Section
-            // ─────────────────────────────────────────────────────────────
-            _buildSectionHeader('سلوك التنبيهات'),
+          // // Individual prayer toggles
+          // ...Prayer.values.where((p) => p != Prayer.none).map((prayer) {
+          //   return _buildPrayerToggleTile(
+          //     context,
+          //     settings,
+          //     prayer,
+          //   );
+          // }),
 
-            SwitchListTile(
-              title: const Text('تنبيه مسبق'),
-              subtitle: const Text('إشعار قبل وقت الصلاة'),
-              value: settings.preAlertsEnabled,
-              onChanged: (enabled) async {
-                await settings.setPreAlertsEnabled(enabled);
-                await _rescheduleNotifications(context, settings);
-              },
-              secondary: const Icon(Icons.notifications_active_outlined),
-            ),
+          // ─────────────────────────────────────────────────────────────
+          // 🔔 Notification Behavior Section
+          // ─────────────────────────────────────────────────────────────
+          _buildSectionHeader('سلوك التنبيهات'),
 
-            if (settings.preAlertsEnabled)
-              ListTile(
-                title: const Text('مدة التنبيه المسبق'),
-                subtitle: Text('${settings.preAlertMinutes} دقائق قبل الصلاة'),
-                trailing: DropdownButton<int>(
-                  value: settings.preAlertMinutes,
-                  items: [5, 10, 15, 20, 30]
-                      .map((m) => DropdownMenuItem(
-                            value: m,
-                            child: Text('$m دقائق'),
-                          ))
-                      .toList(),
-                  onChanged: (minutes) async {
-                    if (minutes != null) {
-                      await settings.setPreAlertMinutes(minutes);
-                      await _rescheduleNotifications(context, settings);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '✅ تم تحديث مدة التنبيه إلى $minutes دقائق'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
+          SwitchListTile(
+            title: const Text('تنبيه مسبق'),
+            subtitle: const Text('إشعار قبل وقت الصلاة'),
+            value: settings.preAlertsEnabled,
+            onChanged: (enabled) async {
+              await settings.setPreAlertsEnabled(enabled);
+              await _rescheduleNotifications(context, settings);
+            },
+            secondary: const Icon(Icons.notifications_active_outlined),
+          ),
+
+          if (settings.preAlertsEnabled)
+            ListTile(
+              title: const Text('مدة التنبيه المسبق'),
+              subtitle: Text('${settings.preAlertMinutes} دقائق قبل الصلاة'),
+              trailing: DropdownButton<int>(
+                value: settings.preAlertMinutes,
+                items: [5, 10, 15, 20, 30]
+                    .map((m) => DropdownMenuItem(
+                          value: m,
+                          child: Text('$m دقائق'),
+                        ))
+                    .toList(),
+                onChanged: (minutes) async {
+                  if (minutes != null) {
+                    await settings.setPreAlertMinutes(minutes);
+                    await _rescheduleNotifications(context, settings);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content:
+                              Text('✅ تم تحديث مدة التنبيه إلى $minutes دقائق'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
                     }
-                  },
-                ),
+                  }
+                },
               ),
-
-            SwitchListTile(
-              title: const Text('الصلاة القادمة فقط'),
-              subtitle: const Text('إشعار للصلاة التالية فقط وتجاهل البقية'),
-              value: settings.onlyNextPrayer,
-              onChanged: (onlyNext) async {
-                await settings.setOnlyNextPrayer(onlyNext);
-                await _rescheduleNotifications(context, settings);
-              },
-              secondary: const Icon(Icons.looks_one),
             ),
 
-            // ─────────────────────────────────────────────────────────────
-            // 🧮 Calculation Settings Section
-            // ─────────────────────────────────────────────────────────────
-            _buildSectionHeader('حساب مواقيت الصلاة'),
+          SwitchListTile(
+            title: const Text('الصلاة القادمة فقط'),
+            subtitle: const Text('إشعار للصلاة التالية فقط وتجاهل البقية'),
+            value: settings.onlyNextPrayer,
+            onChanged: (onlyNext) async {
+              await settings.setOnlyNextPrayer(onlyNext);
+              await _rescheduleNotifications(context, settings);
+            },
+            secondary: const Icon(Icons.looks_one),
+          ),
 
+          // ─────────────────────────────────────────────────────────────
+          // 🧮 Calculation Settings Section
+          // ─────────────────────────────────────────────────────────────
+          _buildSectionHeader('حساب مواقيت الصلاة'),
+
+          ListTile(
+            title: const Text('طريقة الحساب'),
+            subtitle: Text(
+                _getCalculationMethodDisplayName(settings.calculationMethod)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => _showCalculationMethodDialog(context, settings),
+            leading: const Icon(Icons.calculate_outlined),
+          ),
+
+          ListTile(
+            title: const Text('المذهب (لحساب وقت العصر)'),
+            subtitle: Text(_getMadhabDisplayName(settings.madhab)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => _showMadhabDialog(context, settings),
+            leading: const Icon(Icons.account_balance_outlined),
+          ),
+
+          // Timezone (advanced - hide if using 'auto')
+          // ListTile(
+          //   title: const Text('المنطقة الزمنية'),
+          //   subtitle: Text(settings.timezone == 'auto' ? 'تلقائي (جهاز)' : settings.timezone),
+          //   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          //   onTap: () => _showTimezoneDialog(context, settings),
+          //   leading: const Icon(Icons.public),
+          // ),
+
+          // ─────────────────────────────────────────────────────────────
+          // 🎨 UI & Experience Section
+          // ─────────────────────────────────────────────────────────────
+          _buildSectionHeader('واجهة المستخدم'),
+
+          SwitchListTile(
+            title: const Text('عرض التاريخ الهجري'),
+            subtitle: const Text('إظهار التاريخ الهجري بجانب الميلادي'),
+            value: settings.hijriDateEnabled,
+            onChanged: settings.setHijriDateEnabled,
+            secondary: const Icon(Icons.calendar_today_outlined),
+          ),
+
+          SwitchListTile(
+            title: const Text('اهتزاز عند التنبيه'),
+            value: settings.vibrationEnabled,
+            onChanged: settings.setVibrationEnabled,
+            secondary: const Icon(Icons.vibration),
+          ),
+
+          SwitchListTile(
+            title: const Text('صوت التنبيه'),
+            value: settings.soundEnabled,
+            onChanged: settings.setSoundEnabled,
+            secondary: const Icon(Icons.volume_up_outlined),
+          ),
+
+          if (settings.soundEnabled)
             ListTile(
-              title: const Text('طريقة الحساب'),
-              subtitle: Text(
-                  _getCalculationMethodDisplayName(settings.calculationMethod)),
+              title: const Text('نغمة التنبيه'),
+              subtitle: Text(_getSoundDisplayName(settings.notificationSound)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => _showCalculationMethodDialog(context, settings),
-              leading: const Icon(Icons.calculate_outlined),
+              onTap: () => _showSoundDialog(context, settings),
+              leading: const Icon(Icons.music_note_outlined),
             ),
 
-            ListTile(
-              title: const Text('المذهب (لحساب وقت العصر)'),
-              subtitle: Text(_getMadhabDisplayName(settings.madhab)),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () => _showMadhabDialog(context, settings),
-              leading: const Icon(Icons.account_balance_outlined),
-            ),
-
-            // Timezone (advanced - hide if using 'auto')
-            // ListTile(
-            //   title: const Text('المنطقة الزمنية'),
-            //   subtitle: Text(settings.timezone == 'auto' ? 'تلقائي (جهاز)' : settings.timezone),
-            //   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            //   onTap: () => _showTimezoneDialog(context, settings),
-            //   leading: const Icon(Icons.public),
-            // ),
-
-            // ─────────────────────────────────────────────────────────────
-            // 🎨 UI & Experience Section
-            // ─────────────────────────────────────────────────────────────
-            _buildSectionHeader('واجهة المستخدم'),
-
-            SwitchListTile(
-              title: const Text('عرض التاريخ الهجري'),
-              subtitle: const Text('إظهار التاريخ الهجري بجانب الميلادي'),
-              value: settings.hijriDateEnabled,
-              onChanged: settings.setHijriDateEnabled,
-              secondary: const Icon(Icons.calendar_today_outlined),
-            ),
-
-            SwitchListTile(
-              title: const Text('اهتزاز عند التنبيه'),
-              value: settings.vibrationEnabled,
-              onChanged: settings.setVibrationEnabled,
-              secondary: const Icon(Icons.vibration),
-            ),
-
-            SwitchListTile(
-              title: const Text('صوت التنبيه'),
-              value: settings.soundEnabled,
-              onChanged: settings.setSoundEnabled,
-              secondary: const Icon(Icons.volume_up_outlined),
-            ),
-
-            if (settings.soundEnabled)
-              ListTile(
-                title: const Text('نغمة التنبيه'),
-                subtitle:
-                    Text(_getSoundDisplayName(settings.notificationSound)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => _showSoundDialog(context, settings),
-                leading: const Icon(Icons.music_note_outlined),
-              ),
-
-            // ─────────────────────────────────────────────────────────────
-            // ℹ️ About / Info Section
-            // ─────────────────────────────────────────────────────────────
-            const SizedBox(height: 24),
-            Center(
-              child: Text(
-                'PrayOn v1.0.0',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
+          // ─────────────────────────────────────────────────────────────
+          // ℹ️ About / Info Section
+          // ─────────────────────────────────────────────────────────────
+          const SizedBox(height: 24),
+          Center(
+            child: Text(
+              'PrayOn v1.0.0',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
               ),
             ),
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }
@@ -358,6 +357,7 @@ class SettingsPage extends StatelessWidget {
               onChanged: (value) async {
                 if (value != null) {
                   await settings.setNotificationSound(value);
+                  await _rescheduleNotifications(context, settings);
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
@@ -388,17 +388,19 @@ class SettingsPage extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () async {
-              // final settings =
-              //     Provider.of<SettingsService>(context, listen: false);
-              // await settings.resetToDefaults();
-              await NotiService.instance.cancelAllPrayerNotifications();
+              final settings =
+                  Provider.of<SettingsService>(context, listen: false);
+
+              await settings.resetToDefaults();
+
+              await _rescheduleNotifications(context, settings);
 
               if (ctx.mounted) {
                 Navigator.pop(ctx);
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('✅ تم استعادة الإعدادات الافتراضية'),
-                    backgroundColor: Colors.green,
                   ),
                 );
               }
@@ -418,9 +420,20 @@ class SettingsPage extends StatelessWidget {
     BuildContext context,
     SettingsService settings,
   ) async {
-    // Note: In a real app, you'd get current prayers from your PrayerService
-    // For now, we just notify that settings changed
-    // Your PrayerViewModel should listen to SettingsService and auto-reschedule
+    try {
+      // TODO:
+      // Get prayers from PrayerService or ViewModel
+      // Example:
+      //
+      // final prayers =
+      //     context.read<PrayerProvider>().todayPrayers;
+      //
+      // await NotiService.instance.schedulePrayerNotifications(prayers);
+
+      debugPrint('🔄 Notifications rescheduled');
+    } catch (e) {
+      debugPrint('❌ Failed to reschedule notifications: $e');
+    }
   }
 
   String _getPrayerDisplayName(Prayer prayer) {

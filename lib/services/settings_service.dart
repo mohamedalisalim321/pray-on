@@ -1,9 +1,7 @@
-// lib/services/settings_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:adhan/adhan.dart'; // For Prayer enum
+import 'package:adhan/adhan.dart';
 
-/// All configurable app settings with persistence
 class SettingsService extends ChangeNotifier {
   SettingsService._privateConstructor();
 
@@ -56,12 +54,12 @@ class SettingsService extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   bool _hijriDateEnabled = true;
   bool _vibrationEnabled = true;
-  // bool _soundEnabled = true;
-  String _notificationSound = 'default';
+  bool _soundEnabled = true;
+  String _notificationSound = 'Minshawi';
 
   bool get hijriDateEnabled => _hijriDateEnabled;
   bool get vibrationEnabled => _vibrationEnabled;
-  bool get soundEnabled => _notificationSound == "default";
+  bool get soundEnabled => _soundEnabled;
   String get notificationSound => _notificationSound;
 
   // ---------------------------------------------------------------------------
@@ -105,7 +103,7 @@ class SettingsService extends ChangeNotifier {
     // UI settings
     _hijriDateEnabled = _prefs!.getBool('hijri_enabled') ?? true;
     _vibrationEnabled = _prefs!.getBool('vibration_enabled') ?? true;
-    // _soundEnabled = _prefs!.getBool('sound_enabled') ?? true;
+    _soundEnabled = _prefs!.getBool('sound_enabled') ?? true;
     _notificationSound = _prefs!.getString('notification_sound') ?? 'default';
   }
 
@@ -234,7 +232,7 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> setSoundEnabled(bool enabled) async {
-    // _soundEnabled = enabled;
+    _soundEnabled = enabled;
     await _saveBool('sound_enabled', enabled);
     notifyListeners();
   }
@@ -262,5 +260,31 @@ class SettingsService extends ChangeNotifier {
       default:
         return false;
     }
+  }
+
+  Future<void> resetToDefaults() async {
+    _fajrEnabled = true;
+    _dhuhrEnabled = true;
+    _asrEnabled = true;
+    _maghribEnabled = true;
+    _ishaEnabled = true;
+    _sunriseEnabled = false;
+
+    _preAlertsEnabled = true;
+    _onlyNextPrayer = false;
+    _preAlertMinutes = 10;
+
+    _calculationMethod = CalculationMethod.egyptian;
+    _madhab = Madhab.shafi;
+    _timezone = 'auto';
+
+    _hijriDateEnabled = true;
+    _vibrationEnabled = true;
+    _soundEnabled = true;
+    _notificationSound = 'default';
+
+    await _prefs?.clear();
+
+    notifyListeners();
   }
 }

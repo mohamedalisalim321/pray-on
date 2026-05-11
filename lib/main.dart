@@ -7,8 +7,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:hijri/hijri_calendar.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:provider/provider.dart';
 
+import 'services/adhan_service.dart';
 import 'services/localization_service.dart';
 import 'services/location_service.dart';
 import 'services/noti_service.dart';
@@ -24,13 +27,11 @@ import 'pages/home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock orientation
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Transparent system UI
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     systemNavigationBarColor: Colors.transparent,
@@ -38,7 +39,6 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  // Error handling
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     if (kDebugMode) {
@@ -58,47 +58,37 @@ void main() async {
   await initializeDateFormatting();
   HijriCalendar.setLocal("ar");
 
-  // ── Timezone ──────────────────────────────────────────────────────────────
-  // NOTE: Do NOT call tz.initializeTimeZones() here.
-  // NotiService.initialize() already calls tz_data.initializeTimeZones()
-  // (which uses latest_all — a superset). Calling it twice wastes startup
-  // time and risks importing a different dataset (latest vs latest_all).
-
   // Theme init
   final themeProv = await ThemeProvider.createInitialized();
 
   // Services init
   await SettingsService.instance.initialize();
 
-  // NotiService: initialize early so the plugin and timezone are ready before
-  // any widget tree asks to schedule. Permissions are requested here too, but
-  // the OS dialog will only surface once the first Activity is visible —
-  // Flutter handles that automatically on Android.
+  // 🔥 Initialize background audio service BEFORE runApp
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'mohamedali.salim.prayon.channel',
+    androidNotificationChannelName: 'Adhan Playback',
+    androidNotificationOngoing: true, // Keeps notification persistent
+    androidShowNotificationBadge: true, // Show play/pause badge
+  );
+
+  await AndroidAlarmManager.initialize();
+
+  await AdhanService.instance.initialize();
+
   await NotiService.instance.initialize();
-   await NotiService.instance.showTestNotification();
 
   runApp(
     MultiProvider(
       providers: [
-        // ───────── UI ─────────
         ChangeNotifierProvider(create: (_) => L10n()),
-
         ChangeNotifierProvider.value(value: themeProv),
-
-        // ───────── CORE STATE ─────────
         ChangeNotifierProvider(create: (_) => SettingsService.instance),
-
         ChangeNotifierProvider(create: (_) => LocationService()),
-
-        // ───────── DERIVED SERVICES ─────────
-        // PrayerService is intentionally NOT rebuilt on every LocationService
-        // change; the page calls invalidateCache() manually when it needs a
-        // fresh calculation, so we keep a stable instance here.
         ProxyProvider2<LocationService, SettingsService, PrayerService>(
           update: (_, location, settings, previous) =>
               previous ?? PrayerService(),
         ),
-
         ProxyProvider<LocationService, QiblaService>(
           update: (_, location, previous) => previous ?? QiblaService(),
         ),

@@ -357,16 +357,17 @@ class _CompassPainter extends CustomPainter {
 
     // ── Cardinal labels ────────────────────────────────────────────────────
     final labelStyle = TextStyle(
+      // wordSpacing: 10,
       fontSize: 16.sp,
       fontWeight: FontWeight.bold,
       color: scheme.secondary,
     );
     // Positions tuned so each glyph is centred on its axis.
     final offsets = [
-      Offset(cx - 8.w, 6),
-      Offset(size.width - 22.w, cy - 12.w),
-      Offset(cx - 8.w, size.height - 28.w),
-      Offset(6, cy - 12.w),
+      Offset(cx - 24.w, 12),
+      Offset(size.width - 22.w, cy - 36.w),
+      Offset(cx - 24.w, size.height - 28.w),
+      Offset(12, cy + 36.w),
     ];
     for (int i = 0; i < 4; i++) {
       _drawText(canvas, _cardinals[i], offsets[i], labelStyle);
@@ -385,33 +386,6 @@ class _CompassPainter extends CustomPainter {
     canvas.translate(cx, cy);
     canvas.rotate(angle);
     _drawNeedle(canvas, r * 0.65, needleColor, r * 0.18);
-
-    // Kaaba symbol (filled square) at the needle tip
-    final kaabaPaint = Paint()
-      ..color = needleColor
-      ..style = PaintingStyle.fill;
-    final kaabaSize = 9.w;
-    canvas.drawRect(
-      Rect.fromCenter(
-        center: Offset(0, -(r * 0.65) + kaabaSize / 2),
-        width: kaabaSize,
-        height: kaabaSize,
-      ),
-      kaabaPaint,
-    );
-    // White outline so the square reads cleanly against the needle tip
-    final kaabaOutlinePaint = Paint()
-      ..color = Colors.white.withOpacity(0.85)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    canvas.drawRect(
-      Rect.fromCenter(
-        center: Offset(0, -(r * 0.65) + kaabaSize / 2),
-        width: kaabaSize,
-        height: kaabaSize,
-      ),
-      kaabaOutlinePaint,
-    );
 
     canvas.restore();
 
